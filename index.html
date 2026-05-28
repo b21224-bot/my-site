@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알로록달로록 - 감성 성격 색깔 테스트</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #2d3436;
+            --accent-color: #e67e22;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg-color); color: var(--text-color); overflow-x: hidden; }
+
+        /* 시작 화면 */
+        #start-screen {
+            height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 20px;
+        }
+        .pantone-container { display: flex; gap: 25px; margin-bottom: 50px; flex-wrap: wrap; justify-content: center; }
+        .pantone-circle {
+            width: 110px; height: 110px; border-radius: 50%; position: relative; cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .pantone-circle:hover { transform: scale(1.15); }
+        .pantone-circle::after {
+            content: attr(data-code); position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%);
+            font-size: 13px; font-weight: bold; opacity: 0; transition: opacity 0.3s; color: #636e72;
+        }
+        .pantone-circle:hover::after { opacity: 1; }
+
+        h1 { font-size: 3.5rem; margin-bottom: 15px; font-weight: 700; letter-spacing: -2px; }
+        .description { font-size: 1.2rem; color: #636e72; line-height: 1.6; margin-bottom: 40px; }
+        .start-btn {
+            padding: 18px 55px; font-size: 1.3rem; background: #2d3436; color: #fff;
+            border: none; border-radius: 50px; cursor: pointer; transition: 0.3s; font-weight: 500;
+        }
+        .start-btn:hover { background: var(--accent-color); transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+
+        /* 퀴즈 화면 */
+        #quiz-screen { display: none; height: 100vh; flex-direction: column; position: relative; background: #fffaf1; }
+        .progress-bar { height: 6px; background: #eee; width: 100%; position: fixed; top: 0; }
+        .progress-inner { height: 100%; background: var(--accent-color); width: 0%; transition: 0.4s; }
+        
+        .header-nav { width: 100%; display: flex; justify-content: space-between; padding: 40px 60px; position: absolute; top: 0; }
+        .back-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #b2bec3; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .back-btn:hover { color: #2d3436; }
+
+        .question-container {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; animation: fadeIn 0.6s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .question-text { font-size: 2.2rem; font-weight: 700; margin-bottom: 60px; max-width: 900px; line-height: 1.5; text-align: center; }
+        
+        /* 5점 리커트 척도 스타일 */
+        .likert-options { display: flex; gap: 25px; width: 100%; max-width: 700px; justify-content: space-between; align-items: center; position: relative; }
+        .likert-options::before {
+            content: ''; position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: #dfe6e9; z-index: 1; transform: translateY(-50%);
+        }
+        .likert-dot {
+            background: #fff; border: 3px solid #b2bec3; border-radius: 50%; cursor: pointer; transition: 0.3s; z-index: 2;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .likert-dot:hover { border-color: var(--accent-color); transform: scale(1.15); }
+        .likert-dot.selected { border-color: var(--accent-color); background: var(--accent-color); }
+        
+        /* 크기 다원화 */
+        .dot-1 { width: 85px; height: 85px; } 
+        .dot-2 { width: 65px; height: 65px; }
+        .dot-3 { width: 50px; height: 50px; } 
+        .dot-4 { width: 65px; height: 65px; } 
+        .dot-5 { width: 85px; height: 85px; }
+        
+        .likert-labels { margin-top: 30px; font-size: 1.1rem; color: #636e72; display: flex; justify-content: space-between; width: 100%; max-width: 700px; font-weight: 500; }
+        .label-agree { color: #27ae60; }
+        .label-disagree { color: #c0392b; }
+
+        /* 결과 화면 */
+        #result-screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; padding: 80px 20px; text-align: center; }
+        .result-gradient {
+            width: 320px; height: 320px; border-radius: 50%; margin: 50px 0;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15); animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        
+        .result-title { font-size: 2.8rem; margin-bottom: 15px; font-weight: 700; }
+        .result-desc { max-width: 700px; line-height: 1.8; font-size: 1.15rem; color: #636e72; margin-bottom: 50px; padding: 0 20px; }
+        .btn-group { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .action-btn { padding: 15px 35px; border-radius: 30px; border: 2px solid #2d3436; background: #fff; cursor: pointer; transition: 0.3s; font-weight: 500; font-size: 1rem; }
+        .action-btn:hover { background: #2d3436; color: #fff; }
+
+        /* 모달 스타일 */
+        #all-types-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; z-index: 1000; overflow-y: auto; padding: 60px 40px;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; max-width: 1100px; margin-left: auto; margin-right: auto; }
+        .all-types-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; max-width: 1100px; margin: 0 auto; }
+        .type-item { background: #fdfaf5; padding: 30px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; border: 1px solid #eee; }
+        .type-circle { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .type-label { font-weight: 700; font-size: 1.1rem; color: #2d3436; text-align: center; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <div class="pantone-container" id="random-pantone"></div>
+        <h1>알로록달로록</h1>
+        <p class="description">당신을 어떤 틀에 가두지 않을게요.<br>일상의 선택을 통해 당신만의 다채로운 분위기를 찾아보세요.</p>
+        <button class="start-btn" onclick="startQuiz()">나만의 색깔 찾기 시작</button>
+    </div>
+
+    <div id="quiz-screen">
+        <div class="progress-bar"><div class="progress-inner" id="progress"></div></div>
+        <div class="header-nav">
+            <button class="back-btn" onclick="prevQuestion()" id="back-btn-el">
+                <span>← 이전 질문으로</span>
+            </button>
+            <span id="question-number" style="font-weight: bold; color: #b2bec3;">01 / 20</span>
+        </div>
+        <div class="question-container">
+            <div class="question-text" id="question-text">질문 로딩 중...</div>
+            <div class="likert-options">
+                <div class="likert-dot dot-1" onclick="selectOption(1)"></div>
+                <div class="likert-dot dot-2" onclick="selectOption(2)"></div>
+                <div class="likert-dot dot-3" onclick="selectOption(3)"></div>
+                <div class="likert-dot dot-4" onclick="selectOption(4)"></div>
+                <div class="likert-dot dot-5" onclick="selectOption(5)"></div>
+            </div>
+            <div class="likert-labels">
+                <span class="label-disagree">그렇지 않다</span>
+                <span class="label-agree">그렇다</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-screen">
+        <h2>당신의 영혼이 품은 색깔은</h2>
+        <div class="result-gradient" id="result-color"></div>
+        <h1 class="result-title" id="result-name">로딩 중...</h1>
+        <p class="result-desc" id="result-desc">당신의 고유한 성향 조합이 아름다운 빛으로 탄생했습니다.</p>
+        <div class="btn-group">
+            <button class="action-btn" onclick="copyLink()">결과 공유하기</button>
+            <button class="action-btn" onclick="showAllTypes()">모든 결과 보기</button>
+            <button class="action-btn" onclick="resetTest()" style="background: #2d3436; color: #fff;">테스트 다시하기</button>
+        </div>
+    </div>
+
+    <div id="all-types-modal">
+        <div class="modal-header">
+            <h1>모든 컬러 스펙트럼</h1>
+            <button class="action-btn" onclick="closeModal()">닫기</button>
+        </div>
+        <div class="all-types-grid" id="all-types-grid"></div>
+    </div>
+
+    <script>
+        // 중복 없이 뚜렷하고 예쁜 색상 팔레트 정의
+        const traits = {
+            E: { color: "#FF6B6B", name: "열정적인 선셋" },
+            I: { color: "#4834D4", name: "차분한 미드나잇" },
+            S: { color: "#6AB04C", name: "싱그러운 포레스트" },
+            N: { color: "#BE2EDD", name: "신비로운 매직" },
+            T: { color: "#535C68", name: "이지적인 슬레이트" },
+            F: { color: "#FFBE76", name: "부드러운 허니" },
+            J: { color: "#2F3640", name: "단단한 네이비" },
+            P: { color: "#F9CA24", name: "자유로운 써니" }
+        };
+
+        // 상황 가정형 질문 (한국어로 매끄럽고 의도가 바로 파악되지 않는 문항)
+        const questions = [
+            { q: "주말 아침, 갑작스러운 약속 취소 통보를 받았을 때 오히려 마음이 편안하고 홀가분해지나요?", type: "I" },
+            { q: "새로운 가전제품을 사면 설명서를 처음부터 끝까지 정독한 후에 작동시키나요?", type: "S" },
+            { q: "친구가 속상한 일을 털어놓을 때, 공감의 말보다는 상황 파악과 해결책이 먼저 머릿속에 맴도나요?", type: "T" },
+            { q: "여행을 갈 때 숙소와 교통편뿐만 아니라 시간 단위의 세부 동선까지 짜여 있어야 안심이 되나요?", type: "J" },
+            { q: "모르는 사람들이 가득한 낯선 모임에서도 어색함 없이 먼저 말을 건네며 분위기를 주도하는 편인가요?", type: "E" },
+            { q: "영화나 소설을 볼 때 결말 이후의 이야기나 숨겨진 세계관을 상상하는 데 오랜 시간을 쓰나요?", type: "N" },
+            { q: "누군가와 대화할 때 이야기의 논리적 사실보다는 상대방의 말투와 미묘한 감정 변화에 더 민감한가요?", type: "F" },
+            { q: "정해진 일과나 약속이 없어도 불안하지 않고, 그날그날 끌리는 대로 움직이는 것이 행복한가요?", type: "P" },
+            { q: "왁자지껄한 모임에서 즐겁게 놀고 온 후, 반드시 혼자만의 조용한 충전 시간이 필요한가요?", type: "I" },
+            { q: "무언가를 구매할 때 주관적인 감성이나 디자인보다는 객관적인 가성비와 스펙을 꼼꼼히 따지나요?", type: "T" },
+            { q: "내 방의 물건들이나 책상의 소품들이 항상 정해진 제자리에 일목요연하게 배치되어 있어야 하나요?", type: "J" },
+            { q: "과거의 검증된 방식보다는 조금 위험하더라도 새로운 시도와 가능성에 매력을 느끼나요?", type: "N" },
+            { q: "주변 사람들의 부탁을 거절할 때, 상대방이 상처받거나 실망할까 봐 거절 대사를 수없이 고민하나요?", type: "F" },
+            { q: "철저히 준비했던 계획이 갑자기 틀어져도 화가 나기보다 '오히려 좋아, 대충 해결하지 뭐'라고 생각하나요?", type: "P" },
+            { q: "대화를 나눌 때 비유나 추상적인 표현보다는 눈에 보이는 명확한 사실과 경험담을 선호하나요?", type: "S" },
+            { q: "혼자 사색하며 깊은 생각에 잠길 때보다 사람들과 의견을 주고받으며 수다 떨 때 아이디어가 잘 나오나요?", type: "E" },
+            { q: "갈등 상황이 생기면 서로의 서운함을 달래는 것보다 무엇이 잘못되었는지 잘잘못을 가리는 게 우선인가요?", type: "T" },
+            { q: "해야 할 과제나 업무가 주어지면 미루지 않고 초반에 미리 끝내놓아야 마음 편히 쉴 수 있나요?", type: "J" },
+            { q: "가사가 없는 음악을 들을 때 머릿속으로 특정한 풍경이나 나만의 영화 한 편을 그리며 감상하나요?", type: "N" },
+            { q: "스마트폰 앱들의 알림 배지나 정리되지 않은 화면을 그대로 두어도 별로 신경 쓰이지 않나요?", type: "P" }
+        ];
+
+        let currentIdx = 0;
+        let userAnswers = []; // 각 문항별 5점 척도 선택값 저장 (1~5)
+        let randomPalette = [];
+
+        // 시작 화면 팬톤 칩 4종 랜덤 생성
+        function initStartScreen() {
+            const container = document.getElementById('random-pantone');
+            container.innerHTML = '';
+            const allColors = Object.values(traits).map(t => t.color);
+            const shuffled = allColors.sort(() => 0.5 - Math.random());
+            randomPalette = shuffled.slice(0, 4);
+            
+            randomPalette.forEach(color => {
+                const div = document.createElement('div');
+                div.className = 'pantone-circle';
+                div.style.background = color;
+                div.setAttribute('data-code', color.toUpperCase());
+                container.appendChild(div);
+            });
+        }
+
+        function startQuiz() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'flex';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = questions[currentIdx];
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('question-number').innerText = `${String(currentIdx + 1).padStart(2, '0')} / 20`;
+            document.getElementById('progress').style.width = `${((currentIdx + 1) / questions.length) * 100}%`;
+            
+            // 뒤로가기 버튼 활성화 유무 제어
+            document.getElementById('back-btn-el').style.visibility = currentIdx === 0 ? 'hidden' : 'visible';
+
+            // 이전에 선택한 답이 있다면 시각적으로 표시 보정
+            const dots = document.querySelectorAll('.likert-dot');
+            dots.forEach((dot, idx) => {
+                if (userAnswers[currentIdx] === (idx + 1)) {
+                    dot.classList.add('selected');
+                } else {
+                    dot.classList.remove('selected');
+                }
+            });
+        }
+
+        // 5점 척도 선택 시 작동 (자동 다음 질문 슬라이드 구현)
+        function selectOption(scoreValue) {
+            userAnswers[currentIdx] = scoreValue;
+            
+            // 선택 효과를 위한 애니메이션 처리 후 다음 문항 이동
+            const dots = document.querySelectorAll('.likert-dot');
+            dots.forEach((dot, idx) => {
+                if (idx === (scoreValue - 1)) dot.classList.add('selected');
+                else dot.classList.remove('selected');
+            });
+
+            setTimeout(() => {
+                if (currentIdx < questions.length - 1) {
+                    currentIdx++;
+                    showQuestion();
+                } else {
+                    calculateResult();
+                }
+            }, 250); // 자연스러운 UX를 위한 잠깐의 딜레이 후 이동
+        }
+
+        // 뒤로가기 버튼 완벽 활성화 구현
+        function prevQuestion() {
+            if (currentIdx > 0) {
+                currentIdx--;
+                showQuestion();
+            }
+        }
+
+        // 결과 산출 알고리즘
+        function calculateResult() {
+            let finalScores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+            
+            questions.forEach((q, idx) => {
+                const answer = userAnswers[idx]; // 1 ~ 5 점
+                const type = q.type;
+                
+                // 가중치 계산 규칙
+                // 4, 5점은 해당 지표 가점 (5점: +2, 4점: +1)
+                // 1, 2점은 반대 지표 가점 (1점: 해당 지표 반대 +2, 2점: 반대 +1)
+                // 3점은 중립으로 가점 없음
+                const opposites = { E:"I", I:"E", S:"N", N:"S", T:"F", F:"T", J:"P", P:"J" };
+                
+                if (answer === 5) finalScores[type] += 2;
+                else if (answer === 4) finalScores[type] += 1;
+                else if (answer === 2) finalScores[opposites[type]] += 1;
+                else if (answer === 1) finalScores[opposites[type]] += 2;
+            });
+
+            // 가장 수치가 높은 상위 2개 추출
+            const sorted = Object.entries(finalScores).sort((a, b) => b[1] - a[1]);
+            const top1 = sorted[0][0];
+            const top2 = sorted[1][0];
+
+            renderResult(top1, top2);
+        }
+
+        function renderResult(t1, t2) {
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'flex';
+            
+            const color1 = traits[t1].color;
+            const color2 = traits[t2].color;
+            const name1 = traits[t1].name;
+            const name2 = traits[t2].name;
+
+            // 결과 화면 그라데이션 적용 및 텍스트 바인딩
+            document.getElementById('result-color').style.background = `linear-gradient(135deg, ${color1}, ${color2})`;
+            document.getElementById('result-name').innerText = `${name1} & ${name2}`;
+            document.getElementById('result-desc').innerText = `당신은 언제나 은은하게 빛나는 [${name1}]의 내면과 자유로우면서 뚜렷한 존재감을 발하는 [${name2}]의 조화를 고루 품고 있습니다. 틀에 얽매이지 않고 세상을 다채롭게 채워나가는 당신만의 스펙트럼입니다.`;
+        }
+
+        // 테스트 완벽 초기화 (처음으로 돌아가기)
+        function resetTest() {
+            currentIdx = 0;
+            userAnswers = [];
+            initStartScreen();
+            document.getElementById('result-screen').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+        }
+
+        // 모든 결과 보기 (코드 기호 대신 감성 컬러 명칭 매칭)
+        function showAllTypes() {
+            const grid = document.getElementById('all-types-grid');
+            grid.innerHTML = '';
+            const traitKeys = Object.keys(traits);
+            
+            // 28가지 고유 그라데이션 조합 생성 및 이름 출력
+            for (let i = 0; i < traitKeys.length; i++) {
+                for (let j = i + 1; j < traitKeys.length; j++) {
+                    const t1 = traitKeys[i];
+                    const t2 = traitKeys[j];
+                    const div = document.createElement('div');
+                    div.className = 'type-item';
+                    div.innerHTML = `
+                        <div class="type-circle" style="background: linear-gradient(135deg, ${traits[t1].color}, ${traits[t2].color})"></div>
+                        <p class="type-label">${traits[t1].name}<br>&<br>${traits[t2].name}</p>
+                    `;
+                    grid.appendChild(div);
+                }
+            }
+            document.getElementById('all-types-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('all-types-modal').style.display = 'none';
+        }
+
+        // 공유하기 링크 복사 기능
+        function copyLink() {
+            const dummy = document.createElement('input');
+            const text = window.location.href;
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+            alert('결과 링크가 복사되었습니다!');
+        }
+
+        // 첫 실행
+        initStartScreen();
+    </script>
+</body>
+</html>
